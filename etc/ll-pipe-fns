@@ -23,7 +23,7 @@ findTool zsh || return 1
 # $2: tempfile template
 function jsonifyFile
 {
-    ${TOOL_PERL} -i -n \
+    ${=TOOL_PERL} -i -n \
         -e 'BEGIN { use JSON::XS; }' \
         -e 's(^ \s* (.*?) \s* \t \s* (.*) \s* $)( $obj{$1} = $2 )ex;' \
         -e 'eof && print to_json(\%obj), "\n";' ${1}
@@ -39,7 +39,7 @@ function timeCommand
     zparseopts -D -- \
         "-kv+:=kv"
 
-    ${TOOL_TIME} \
+    ${=TOOL_TIME} \
         --format '
 exitStatus\t%x
 realTime\t%E

@@ -5,7 +5,7 @@
 
 function usage
 {
-    ${TOOL_CAT} <<EOF
+    ${=TOOL_CAT} <<EOF
 NAME
     $(progname) - process input in parallel
 
@@ -178,7 +178,7 @@ predefinedCollector2Command=(
 )
 
 local template="${$}.XXXXXXXXXX"
-local tempDir=$(${TOOL_MKTEMP} -d ${TMPDIR:-.}/${template})
+local tempDir=$(${=TOOL_MKTEMP} -d ${TMPDIR:-.}/${template})
 if (( ${?} ))
 then
     error "Failed to create temporary work directory."
@@ -188,7 +188,7 @@ fi
 builtin cd ${tempDir}
 
 # File that will contain the list of files containing the split input.
-local listFile=$(${TOOL_MKTEMP} ${template})
+local listFile=$(${=TOOL_MKTEMP} ${template})
 
 
 # The collector manager runs in the background and is started before any
@@ -214,18 +214,18 @@ done > >(XXXstdoutcollector) > >(XXXstderrcollector) &
 # combine everything later.
 message -u2 "Splitting input into chunks..."
 
-${TOOL_VERBOSE_SPLIT} \
+${=TOOL_VERBOSE_SPLIT} \
     --lines-per-chunk ${opts[--lines-per-chunk]} \
     --temp-file-prefix ${tempDir}/${template} \
     > ${listFile} |    # note the pipe
 
 # Process each chunk.
-${TOOL_XARGS} \
+${=TOOL_XARGS} \
     --max-lines=1 \
     --max-procs=${opts[--max-jobs]} \
     --no-run-if-empty \
     --replace='{}' \
-    ${TOOL_LL_PIPE_WORKER} \
+    ${=TOOL_LL_PIPE_WORKER} \
         --max-attempts ${opts[--max-attempts]} \
         --retry-delay ${opts[--retry-delay]} \
         ${(k)opts[--retry-failure-fatal]} \
@@ -250,8 +250,8 @@ do
         collector=${predefinedCollector2Command[${collector}]}
     fi
 
-    collector2collectorMetaFile[${collector}]=$(${TOOL_MKTEMP} ${tempDir}/${template})
-    ${TOOL_MV} -f \
+    collector2collectorMetaFile[${collector}]=$(${=TOOL_MKTEMP} ${tempDir}/${template})
+    ${=TOOL_MV} -f \
         ${collector2collectorMetaFile[${collector}]} \
         ${collector2collectorMetaFile[${collector}]}.meta-collect
 
@@ -272,13 +272,13 @@ done
 wait        # Wait for all collectors to complete.
 
 # Collect the meta files from the workers.
-< ${listFile} ${TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
+< ${listFile} ${=TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
     --suffix .meta \
     --output-file ${opts[--meta-outfile-json]}
 
 # Collect meta files from collectors.
 print -r -l -- ${collector2collectorMetaFile} |
-    ${TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
+    ${=TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
         --suffix .meta-collect \
         --output-file ${opts[--meta-outfile-json]}
 
@@ -287,19 +287,19 @@ print -r -l -- ${collector2collectorMetaFile} |
 if (( ! ${+opts[--clean-all]} ))
 then
     addFileSuffixes .success < ${listFile} |
-    ${TOOL_XARGS} \
+    ${=TOOL_XARGS} \
         --max-procs=${opts[--max-jobs]} \
         --no-run-if-empty \
-        ${TOOL_RM} -f
+        ${=TOOL_RM} -f
 
-    ${TOOL_RM} -f ${listFile}
+    ${=TOOL_RM} -f ${listFile}
 
     # Try to remove our temporary dir.  Ignore failure since it may have
     # files from failed chunks in it.
-    ${TOOL_SLEEP} 1 # XXX: WTF is this necessary for the rmdir to succeed on a dir that was just emptied?!?!?!?
-    ${TOOL_RMDIR} --ignore-fail-on-non-empty ${tempDir}
+    ${=TOOL_SLEEP} 1 # XXX: WTF is this necessary for the rmdir to succeed on a dir that was just emptied?!?!?!?
+    ${=TOOL_RMDIR} --ignore-fail-on-non-empty ${tempDir}
 else
-    ${TOOL_RM} -fr ${tempDir}
+    ${=TOOL_RM} -fr ${tempDir}
 fi
 
 return ${xargsError}

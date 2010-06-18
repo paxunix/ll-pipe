@@ -32,7 +32,7 @@ do
         [[ ! -e ${file}.success ]] && continue
 
     [[ -r ${file}${opts[--suffix]} ]] &&
-        ${TOOL_CAT} ${file}${opts[--suffix]} >> ${1}
+        ${=TOOL_CAT} ${file}${opts[--suffix]} >> ${1}
 
     # NOTE:  if the file doesn't exist, this returns false.  This means that
     # if there are no files to collect, this script will return false.  This
@@ -41,7 +41,7 @@ do
 
     # No need to wait for removal to finish (can be slow if there are a lot
     # of files in the directory).
-    ${TOOL_RM} -f ${file}${opts[--suffix]} &
+    ${=TOOL_RM} -f ${file}${opts[--suffix]} &
 done
 
 # vim: ft=zsh

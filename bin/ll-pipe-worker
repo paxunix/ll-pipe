@@ -54,7 +54,7 @@ do
     message -u2 "Command failed (attempt #${numAttempts})..."
 
     (( ${(e)opts[--retry-delay]} != 0 )) &&
-        ${TOOL_SLEEP} ${(e)opts[--retry-delay]}
+        ${=TOOL_SLEEP} ${(e)opts[--retry-delay]}
 done
 
 jsonifyFile ${metaFile}
