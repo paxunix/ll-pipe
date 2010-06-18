@@ -6,7 +6,7 @@
 
 enableDebug && setopt xtrace
 
-. ${0:h}/ll-pipe-fns || return 1
+. ${0:h}/../etc/ll-pipe-fns || return 1
 
 local -A opts
 zparseopts -D -A opts -- \

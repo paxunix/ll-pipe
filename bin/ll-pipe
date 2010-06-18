@@ -123,7 +123,7 @@ function addFileSuffixes
 
 enableDebug && setopt xtrace
 
-. ${0:h}/ll-pipe-fns || return 1
+. ${0:h}/../etc/ll-pipe-fns || return 1
 
 local -a collectors
 zparseopts -D -E -- \
