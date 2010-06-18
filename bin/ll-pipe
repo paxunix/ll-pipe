@@ -1,0 +1,307 @@
+#!/usr/bin/env zsh
+
+
+# $Id$
+
+function usage
+{
+    ${TOOL_CAT} <<EOF
+NAME
+    $(progname) - process input in parallel
+
+SYNOPSIS
+    $(progname) [options] command [arg ...]
+
+DESCRIPTION
+    Reads line input from stdin in chunks and executes a command on each
+    chunk.  Stdout and stderr from processing each chunk is output in the
+    same order as the input.
+
+    Conceptually:
+        A B C D => command+arguments => A' B' C' D'
+    where command+arguments are be applied to A, B, C and D in parallel.
+
+ABOUT THE COMMAND
+    The command is executed for each unique input chunk file (hereinafter
+    referred to as INF) as follows:
+        - INF's contents are piped to command's stdin.
+        - INF is substituted for all occurrences of {} on the command's
+          command line.  This allows the command to create extra output
+          files with a known, per-chunk suffix for custom collection.
+        - command's execution time, exit status, memory usage, etc. are
+          written in JSON form to INF.meta.  It would be wise for the
+          command not to create a .meta file of its own.
+        - INF is removed only if command returns 0.
+        - a 0-byte INF.success file is created if the command executed
+          successfully.  This can be used by collectors to only collect data
+          for chunks processed successfully.
+
+ABOUT THE COLLECTORS
+    All specified collectors are run in parallel.  The list of input chunk
+    filenames is passed on stdin to each.  A collector is expected to read
+    the contents of each suffixed filename it is interested in and remove it
+    once finished.
+
+OPTIONS
+    --clean-all
+        Remove all files related to the input chunks, regardless of whether
+        or not they were processed succesfully.
+
+    --collector command+args
+        Any number of --collector options can be given.  They are run in
+        parallel after all input chunks have been processed.  The input
+        chunk filenames are passed on stdin to each collector.  If
+        command+args contains shell-metacharacters or spaces, wrap it in
+        single quotes.
+
+        The following predefined collector aliases can also be used:
+            +stdout     - Dumps successful <chunk>.out files to stdout.
+            +stderr     - Dumps successful <chunk>.err files to stderr.
+
+    --lines-per-chunk num
+        Optional.  The input data will be split into files with a maximum of
+        num lines in each file.  Default is 1000.
+
+    --max-attempts num
+        Optional.  Will retry the command num times on the same input chunk
+        before giving up.  Default is 5.
+
+    --max-jobs num
+        Optional.  Will run the command on num chunks in parallel until all
+        input is consumed.  Default is 1.
+
+    --meta-outfile-json file
+        Optional.  Meta information (e.g. runtime, exit status, etc.) will
+        be collected for various parts of the pipeline and saved to file.
+
+    --retry-delay
+        Optional.  Number of seconds to sleep in between retry attempts.
+        This is a number or a zsh arithmetic expression that can use the
+        'numAttempts' variable, which contains the number of times the
+        command has failed.  Default is 0.
+
+    --retry-failure-fatal
+        Optional.  If the final retry of a command fails, this script is
+        terminated and no further input will be processed.  The default
+        behaviour is to continue processing even if one chunk fails
+        processing.  This will leave input chunk files lying around if they
+        were never processed due to early exit.
+
+OPERANDS
+    command     The command to execute for each input chunk.  It receives
+                the chunk's data on stdin and is expected to write its
+                processed output to stdout.
+
+    arg         Arguments passed to the given command.
+
+EXIT STATUS
+    0   Every chunk was successfully processed.
+    !0  Processing/collection failed for at least one chunk.
+EOF
+}   # usage
+
+
+# Given a list of suffix globs, reads list of file prefixes on stdin and
+# appends each suffix to the filename that was read, and outputs it if
+# evaluating the glob is successful.
+function addFileSuffixes
+{
+    enableDebug && setopt xtrace
+
+    local file
+    local -a fileList
+
+    while read -r file
+    do
+        fileList=( ${file}${^~@}(N) )
+        (( ${#fileList} > 0 )) && print -l -r -- ${fileList}
+    done
+}
+
+
+# Main
+
+enableDebug && setopt xtrace
+
+. ${0:h}/ll-pipe-fns || return 1
+
+local -a collectors
+zparseopts -D -E -- \
+    "-collector+:=collectors"
+
+# Remove --collector option names
+collectors=( ${collectors:#--collector} )
+
+local -A opts
+zparseopts -D -A opts -- \
+    "-clean-all" \
+    "-lines-per-chunk:" \
+    "-max-attempts:" \
+    "-max-jobs:" \
+    "-meta-outfile-json:" \
+    "-retry-delay:" \
+    "-retry-failure-fatal" \
+
+if [[ ${1} == -* ]]     # Probably an unknown option
+then
+    error "Unknown option: ${1}"
+    usage
+    return 1
+fi
+
+if [[ -z ${1} ]]
+then
+    error "No command was given."
+    return 1
+fi
+
+# Set default parameters if necessary.
+: ${opts[--lines-per-chunk]:=1000}
+: ${opts[--max-attempts]:=5}
+: ${opts[--max-jobs]:=1}
+: ${opts[--meta-outfile-json]:=/dev/null}
+: ${opts[--retry-delay]:=0}
+
+
+# Predefined collectors
+local -A predefinedCollector2Command
+predefinedCollector2Command=(
+    +stdout     "${0:h}/bin/ll-pipe-collect-by-suffix \
+                    --successful-only \
+                    --suffix .out \
+                    --output-file /dev/stdout"
+
+    +stderr     "${0:h}/bin/ll-pipe-collect-by-suffix \
+                    --successful-only \
+                    --suffix .err \
+                    --output-file /dev/stderr"
+)
+
+local template="${$}.XXXXXXXXXX"
+local tempDir=$(${TOOL_MKTEMP} -d ${TMPDIR:-.}/${template})
+if (( ${?} ))
+then
+    error "Failed to create temporary work directory."
+    return 1
+fi
+
+builtin cd ${tempDir}
+
+# File that will contain the list of files containing the split input.
+local listFile=$(${TOOL_MKTEMP} ${template})
+
+
+# The collector manager runs in the background and is started before any
+# input is actually processed.  It scans every second for the next chunk of
+# processed data, and once it's available, passes it to the collectors and
+# continues until all chunks are finished.
+local curChunk=1
+while true
+do
+    # XXX:  can't check for chunks-done until all output has been collected.
+    # Otherwise, this loop could exit before chunks have been collected.
+    if [[ ! -e ${curChunk}.done && ! -e chunks-done ]]
+    then
+        ${TOOL_SLEEP} 1
+    else
+        print -r -- ${curChunk}
+        priorChunk=$(( priorChunk + 1 ))
+    fi
+done > >(XXXstdoutcollector) > >(XXXstderrcollector) &
+
+
+# Split input into chunks and save the chunk names to a file so we can
+# combine everything later.
+message -u2 "Splitting input into chunks..."
+
+${TOOL_VERBOSE_SPLIT} \
+    --lines-per-chunk ${opts[--lines-per-chunk]} \
+    --temp-file-prefix ${tempDir}/${template} \
+    > ${listFile} |    # note the pipe
+
+# Process each chunk.
+${TOOL_XARGS} \
+    --max-lines=1 \
+    --max-procs=${opts[--max-jobs]} \
+    --no-run-if-empty \
+    --replace='{}' \
+    ${TOOL_LL_PIPE_WORKER} \
+        --max-attempts ${opts[--max-attempts]} \
+        --retry-delay ${opts[--retry-delay]} \
+        ${(k)opts[--retry-failure-fatal]} \
+        --input-file '{}' \
+        ${@}
+
+# Tell the collector manager that all input chunks have been processed.
+: > chunks-done
+
+local xargsError=${?}
+
+# Run all user-specified collectors.  XXX:  it would be nice to run this
+# with the stdout and stderr collectors as well.
+local -A collector2collectorMetaFile
+for collector in ${collectors}
+do
+    message -u2 "Running collector ${collector%%[[:space:]]}..."
+
+    # If a predefine collector was given, use its corresponding command.
+    if [[ -n ${(Mk)predefinedCollector2Command:#${collector}} ]]
+    then
+        collector=${predefinedCollector2Command[${collector}]}
+    fi
+
+    collector2collectorMetaFile[${collector}]=$(${TOOL_MKTEMP} ${tempDir}/${template})
+    ${TOOL_MV} -f \
+        ${collector2collectorMetaFile[${collector}]} \
+        ${collector2collectorMetaFile[${collector}]}.meta-collect
+
+    {
+        timeCommand \
+            --kv "action\\tcollector" \
+            --output ${collector2collectorMetaFile[${collector}]}.meta-collect \
+            ${(z)collector} < ${listFile}
+
+        jsonifyFile ${collector2collectorMetaFile[${collector}]}.meta-collect
+    } &
+
+    # XXX: need to capture exit status from each collector and OR it with
+    # the xargs status to ultimately only return 0 if nothing in this whole
+    # pipline failed.
+done
+
+wait        # Wait for all collectors to complete.
+
+# Collect the meta files from the workers.
+< ${listFile} ${TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
+    --suffix .meta \
+    --output-file ${opts[--meta-outfile-json]}
+
+# Collect meta files from collectors.
+print -r -l -- ${collector2collectorMetaFile} |
+    ${TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
+        --suffix .meta-collect \
+        --output-file ${opts[--meta-outfile-json]}
+
+# If --clean-all was not given, only clean up .success and list files;
+# otherwise remove the directory and its contents.
+if (( ! ${+opts[--clean-all]} ))
+then
+    addFileSuffixes .success < ${listFile} |
+    ${TOOL_XARGS} \
+        --max-procs=${opts[--max-jobs]} \
+        --no-run-if-empty \
+        ${TOOL_RM} -f
+
+    ${TOOL_RM} -f ${listFile}
+
+    # Try to remove our temporary dir.  Ignore failure since it may have
+    # files from failed chunks in it.
+    ${TOOL_SLEEP} 1 # XXX: WTF is this necessary for the rmdir to succeed on a dir that was just emptied?!?!?!?
+    ${TOOL_RMDIR} --ignore-fail-on-non-empty ${tempDir}
+else
+    ${TOOL_RM} -fr ${tempDir}
+fi
+
+return ${xargsError}
+
+# vim: ft=zsh

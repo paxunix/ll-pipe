@@ -1,0 +1,75 @@
+#!/usr/bin/env zsh
+
+# Intended for use by ll-pipe thus there is no error checking of any kind.
+
+# $Id$
+
+enableDebug && setopt xtrace
+
+. ${0:h}/ll-pipe-fns || return 1
+
+local -A opts
+zparseopts -D -A opts -- \
+    "-input-file:" \
+    "-max-attempts:" \
+    "-retry-delay:" \
+    "-retry-failure-fatal" \
+
+# XXX:  we need an exit/signal handler
+# XXX:  messages should only be in verbose mode?
+
+# Receives metadata about the processing.
+local metaFile=${opts[--input-file]}.meta
+
+local numAttempts=0
+local isError=0
+
+# Try the command until it succeeds or runs out of retries.
+while (( numAttempts < ${opts[--max-attempts]} ))
+do
+    numAttempts=$((numAttempts + 1))
+
+    message -u2 "Executing command: (attempt #${numAttempts}/${opts[--max-attempts]})..."
+
+    # Time the command to get stats about it.  stdout overwrites stdout from
+    # any prior attempt.  stderr is accumulated across attempts.
+    timeCommand \
+        --kv "action\\tcommand" \
+        --kv "numAttempts\\t${numAttempts}" \
+        --kv "inputFile\\t${opts[--input-file]}" \
+        --output ${metaFile} \
+        ${@} \
+        < ${opts[--input-file]} \
+        > ${opts[--input-file]}.out \
+        2>> ${opts[--input-file]}.err
+
+    isError=${?}
+
+    if (( ! isError ))
+    then
+        message -u2 "Command succeeded (attempt #${numAttempts})..."
+        break
+    fi
+
+    message -u2 "Command failed (attempt #${numAttempts})..."
+
+    (( ${(e)opts[--retry-delay]} != 0 )) &&
+        ${TOOL_SLEEP} ${(e)opts[--retry-delay]}
+done
+
+jsonifyFile ${metaFile}
+
+# This worker is done processing.
+print -r -- ${isError} > ${opts[--input-file]}.done
+
+# If the command failed and failure is fatal, immediately return 255 so that
+# the wrapper xargs kills its kids and exits.
+if (( isError && ${+opts[--retry-failure-fatal]} ))
+then
+    message -u2 "Exceeded max retries.  Aborting all workers..."
+    isError=255
+fi
+
+return ${isError}
+
+# vim: ft=zsh

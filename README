@@ -1,0 +1,2 @@
+A zsh experiment in processing large amounts of input on stdin in parallel
+and preserving output order.

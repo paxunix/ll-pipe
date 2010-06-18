@@ -1,0 +1,47 @@
+#!/usr/bin/env zsh
+
+# Read list of filenames on stdin, append the given suffix to each, the
+# append the contents of each resulting file to the given filename, then remove
+# each resulting filename.
+#
+# Options:
+# --suffix suf
+#   Appends suf to each filename read from stdin and if the resulting
+#   filename is readable, write its contents to the given file.
+# --successful-only
+#   Only write and delete any files if they have a corresponding
+#   file with a .success suffix file.
+# --output-file file
+#   Appends contents to file.
+
+enableDebug && setopt xtrace
+
+local -A opts
+zparseopts -D -A opts -- \
+    "-successful-only" \
+    "-suffix:" \
+    "-output-file" \
+
+findTool cat || return 1
+findTool rm || return 1
+
+local file
+while read -r file
+do
+    (( ${+opts[--successful-only]} )) &&
+        [[ ! -e ${file}.success ]] && continue
+
+    [[ -r ${file}${opts[--suffix]} ]] &&
+        ${TOOL_CAT} ${file}${opts[--suffix]} >> ${1}
+
+    # NOTE:  if the file doesn't exist, this returns false.  This means that
+    # if there are no files to collect, this script will return false.  This
+    # is a policy decision:  the absence of a file implies there was a
+    # problem with its generation.
+
+    # No need to wait for removal to finish (can be slow if there are a lot
+    # of files in the directory).
+    ${TOOL_RM} -f ${file}${opts[--suffix]} &
+done
+
+# vim: ft=zsh

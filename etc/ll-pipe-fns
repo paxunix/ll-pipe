@@ -1,0 +1,64 @@
+setopt extendedglob
+
+findTool cat || return 1
+findTool ll-pipe-collect-by-suffix ${0:h} || return 1
+findTool ll-pipe-worker ${0:h} || return 1
+findTool mkdir || return 1
+findTool mktemp || return 1
+findTool mv || return 1
+findTool perl ${0:h} || return 1
+findTool rmdir || return 1
+findTool rm || return 1
+findTool sed || return 1
+findTool sleep || return 1
+findTool time || return 1
+findTool verbose-split ${0:h} || return 1
+findTool xargs || return 1
+findTool zsh || return 1
+
+
+# Used to JSON-ify the output from GNU time, given custom formatting as
+# applied by timeCommand().
+# $1: Input file
+# $2: tempfile template
+function jsonifyFile
+{
+    ${TOOL_PERL} -i -n \
+        -e 'BEGIN { use JSON::XS; }' \
+        -e 's(^ \s* (.*?) \s* \t \s* (.*) \s* $)( $obj{$1} = $2 )ex;' \
+        -e 'eof && print to_json(\%obj), "\n";' ${1}
+}
+
+
+# Run GNU time with the given command+arguments and a preset format string,
+# with additional optional keys+values appended to it.
+# Arguments to --kv are "key value".
+function timeCommand
+{
+    local -a kv
+    zparseopts -D -- \
+        "-kv+:=kv"
+
+    ${TOOL_TIME} \
+        --format '
+exitStatus\t%x
+realTime\t%E
+userTime\t%U
+systemTime\t%S
+cpuPercent\t%P
+maxRSS\t%M
+avgRSS\t%t
+avgMemUse\t%K
+numSwaps\t%W
+numPageFaults\t%F
+numInputs\t%I
+numOutputs\t%O
+numSignals\t%k
+numWaits\t%w
+numInvContextSwitches\t%c
+command\t%C
+'${(pj(\n))kv[@]:#--kv} ${@}
+}
+
+
+# vim: ft=zsh
