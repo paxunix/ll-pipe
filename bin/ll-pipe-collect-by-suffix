@@ -30,17 +30,14 @@ do
     (( ${+opts[--successful-only]} &&
        ${(zf)"$(< ${file}.done)"} != 0 )) && continue
 
-    [[ -r ${file}${opts[--suffix]} ]] &&
-        ${=TOOL_CAT} ${file}${opts[--suffix]} >> ${1}
+    if [[ -r ${file}${opts[--suffix]} ]]
+    then
+        ${=TOOL_CAT} ${file}${opts[--suffix]} >> ${opts[--output-file}
+        ${=TOOL_RM} -f ${file}${opts[--suffix]}
+    fi
 
-    # NOTE:  if the file doesn't exist, this returns false.  This means that
-    # if there are no files to collect, this script will return false.  This
-    # is a policy decision:  the absence of a file implies there was a
-    # problem with its generation.
-
-    # No need to wait for removal to finish (can be slow if there are a lot
-    # of files in the directory).
-    ${=TOOL_RM} -f ${file}${opts[--suffix]} &
+    # XXX:  should the script return false if a file was passed in but could
+    # not be read?
 done
 
 # vim: ft=zsh
