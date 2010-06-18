@@ -9,8 +9,7 @@
 #   Appends suf to each filename read from stdin and if the resulting
 #   filename is readable, write its contents to the given file.
 # --successful-only
-#   Only write and delete any files if they have a corresponding
-#   file with a .success suffix file.
+#   Only write and delete any files if their command executed successfully.
 # --output-file file
 #   Appends contents to file.
 
@@ -28,8 +27,8 @@ findTool rm || return 1
 local file
 while read -r file
 do
-    (( ${+opts[--successful-only]} )) &&
-        [[ ! -e ${file}.success ]] && continue
+    (( ${+opts[--successful-only]} &&
+       ${(zf)"$(< ${file}.done)"} != 0 )) && continue
 
     [[ -r ${file}${opts[--suffix]} ]] &&
         ${=TOOL_CAT} ${file}${opts[--suffix]} >> ${1}
