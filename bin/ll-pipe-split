@@ -3,7 +3,6 @@
 use strict;
 
 use File::Basename;
-use File::Temp qw(tempdir);
 use Getopt::Long;
 use IO::File;
 
@@ -22,8 +21,10 @@ SYNOPSIS
           [file1 file2 ...]
 
 DESCRIPTION
-    Breaks stdin or the given files into files in a temporary direction and
-    writes the files' names to stdout as they are created.
+    Breaks stdin or the given files into files in the given director, each
+    containing the given number of lines until all input is consumed.  Each
+    create filename is output to stdout once content is written to it and it
+    is closed.
 
 OPTIONS
     --lines-per-chunk num
@@ -31,8 +32,8 @@ OPTIONS
         Defaults to 1000.
 
     --directory
-        The directory in which a temporary staging directory is created to
-        contain the split files.  Defaults to ".".
+        The directory to contain the split files.  Must already exist.
+        Defaults to ".".
 
 OPERANDS
     file1, file2, ...       Optional list of filenames used, in order, as
@@ -74,13 +75,11 @@ my $fileName;
 my $lineCount = 0;
 my $fileCount = 1;
 
-my $tempDir = tempdir(DIR => $directory);
-
 while (<>)
 {
     if (!$fileHandle)
     {
-        $fileName = "$tempDir/$fileCount";
+        $fileName = "$directory/$fileCount";
         $fileHandle = new IO::File($fileName, ">") or
             die("Faile to open '$fileName' for write: $!\n");
 
