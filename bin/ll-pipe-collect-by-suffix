@@ -19,7 +19,7 @@ local -A opts
 zparseopts -D -A opts -- \
     "-successful-only" \
     "-suffix:" \
-    "-output-file" \
+    "-output-file:" \
 
 findTool cat || return 1
 findTool rm || return 1
@@ -32,7 +32,7 @@ do
 
     if [[ -r ${file}${opts[--suffix]} ]]
     then
-        ${=TOOL_CAT} ${file}${opts[--suffix]} >> ${opts[--output-file}
+        ${=TOOL_CAT} ${file}${opts[--suffix]} >> ${opts[--output-file]}
         ${=TOOL_RM} -f ${file}${opts[--suffix]}
     fi
 
