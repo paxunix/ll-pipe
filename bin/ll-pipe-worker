@@ -48,6 +48,9 @@ do
     if (( ! isError ))
     then
         message -u2 "Command succeeded (attempt #${numAttempts})..."
+
+        # On success, delete the input file.
+        ${=TOOL_RM} -f ${opts[--input-file]}
         break
     fi
 
