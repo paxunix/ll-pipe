@@ -213,10 +213,9 @@ done > >(XXXstdoutcollector) > >(XXXstderrcollector) &
 # combine everything later.
 message -u2 "Splitting input into chunks..."
 
-${=TOOL_VERBOSE_SPLIT} \
+${=TOOL_LL_PIPE_SPLIT} \
     --lines-per-chunk ${opts[--lines-per-chunk]} \
-    --temp-file-prefix ${tempDir}/${template} \
-    > ${listFile} |    # note the pipe
+    > chunk-file-list |    # note the pipe
 
 # Process each chunk.
 ${=TOOL_XARGS} \
