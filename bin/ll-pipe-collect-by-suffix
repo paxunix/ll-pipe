@@ -31,8 +31,9 @@ do
     # status was not 0.  If there was any problem with the contents of the
     # .done file, default the status to 1, since that implies there was a
     # problem with that chunk.
-    (( ${+opts[--successful-only]} &&
-       ${(zf)"$(< ${file}.done)":-1} != 0 )) && continue
+    if (( ${+opts[--successful-only]} )) &&
+        [[ -e ${file}.done ]] &&
+        (( ${(zf)"$(< ${file}.done)":-1} != 0 )) && continue
 
     if [[ -r ${file}${opts[--suffix]} ]]
     then
