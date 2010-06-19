@@ -294,7 +294,6 @@ then
 
     # Try to remove our temporary dir.  Ignore failure since it may have
     # files from failed chunks in it.
-    ${=TOOL_SLEEP} 1 # XXX: WTF is this necessary for the rmdir to succeed on a dir that was just emptied?!?!?!?
     ${=TOOL_RMDIR} --ignore-fail-on-non-empty ${tempDir}
 else
     ${=TOOL_RM} -fr ${tempDir}
