@@ -1,2 +1,5 @@
 A zsh experiment in processing large amounts of input on stdin in parallel
 and preserving output order.
+
+NOTE:  there are calls to shell functions whose code is not present in
+this repository, so this will not work out of the box yet.
