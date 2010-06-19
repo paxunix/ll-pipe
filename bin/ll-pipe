@@ -247,8 +247,6 @@ done
 
 wait        # Wait for all collectors and the collector manager to complete.
 
-${=TOOL_RM} -f chunks-done
-
 # Collect meta files from collectors.  Order doesn't matter.
 print -r -l -- *.meta-collector(N) |
     ${=TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
@@ -259,7 +257,7 @@ print -r -l -- *.meta-collector(N) |
 # from successful chunks; otherwise remove the directory and its contents.
 if (( ! ${+opts[--clean-all]} ))
 then
-    print -l -r -- chunk-file-list [0-9]*.done(N) |
+    print -l -r -- chunks-done chunk-file-list [0-9]*.done(N) |
     ${=TOOL_XARGS} \
         --max-procs=${opts[--max-jobs]} \
         --no-run-if-empty \
