@@ -35,9 +35,12 @@ function jsonifyFile
 # Arguments to --kv are "key value".
 function timeCommand
 {
+    local isError
     local -a kv
-    zparseopts -D -- \
-        "-kv+:=kv"
+    local -a output
+    zparseopts -D -- "-kv+:=kv"
+
+    zparseopts -E -- "-output:=output"
 
     ${=TOOL_TIME} \
         --format '
@@ -58,6 +61,12 @@ numWaits\t%w
 numInvContextSwitches\t%c
 command\t%C
 '${(pj(\n))kv[@]:#--kv} ${@}
+
+    isError=${?}
+
+    jsonifyFile ${output[2]}
+
+    return ${isError}
 }
 
 

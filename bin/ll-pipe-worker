@@ -60,8 +60,6 @@ do
         ${=TOOL_SLEEP} ${(e)opts[--retry-delay]}
 done
 
-jsonifyFile ${metaFile}
-
 # This worker is done processing.
 print -r -- ${isError} > ${opts[--input-file]}.done
 
