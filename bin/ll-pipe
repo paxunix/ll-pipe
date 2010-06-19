@@ -273,17 +273,15 @@ print -r -l -- *.meta-collector(N) |
         --suffix '' \
         --output-file ${OLDPWD}/${opts[--meta-outfile-json]}
 
-# If --clean-all was not given, only clean up .done and list files;
-# otherwise remove the directory and its contents.
+# If --clean-all was not given, only clean up list files and .done files
+# from successful chunks; otherwise remove the directory and its contents.
 if (( ! ${+opts[--clean-all]} ))
 then
-    addFileSuffixes .done < chunk-file-list |
+    print -l -r -- chunk-file-list [0-9]*.done(N) |
     ${=TOOL_XARGS} \
         --max-procs=${opts[--max-jobs]} \
         --no-run-if-empty \
         ${=TOOL_RM} -f
-
-    ${=TOOL_RM} -f chunk-file-list
 
     # Try to remove our temporary dir.  Ignore failure since it may have
     # files from failed chunks in it.
