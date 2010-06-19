@@ -162,9 +162,8 @@ builtin cd ${tempDir}
 # that the multios redirects are effectively also wait'd on by this process.
 # XXX:  would be handy to run all collectors in parallel this way; will have
 # to eval in order to get all the multios redirects done.
+function collectorManager
 {
-    : CollectorManager  # identifier for killing this subprocess on signal
-
     local curChunk=1
     while true
     do
@@ -195,10 +194,12 @@ builtin cd ${tempDir}
                 --suffix .meta \
                 --output-file ${opts[--meta-outfile-json]}
         )
-} &
+}   # collectorManager
+
+collectorManager &
 
 # Ensure this background sublist is killed on likely signals.
-trap 'kill %?CollectorManager 2>/dev/null' \
+trap 'kill %?collectorManager 2>/dev/null' \
     INT HUP TERM USR1 USR2 QUIT ABRT
 
 # Split input into chunks and save the chunk names to a file so we can
