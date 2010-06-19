@@ -99,24 +99,6 @@ EOF
 }   # usage
 
 
-# Given a list of suffix globs, reads list of file prefixes on stdin and
-# appends each suffix to the filename that was read, and outputs it if
-# evaluating the glob is successful.
-function addFileSuffixes
-{
-    enableDebug && setopt xtrace
-
-    local file
-    local -a fileList
-
-    while read -r file
-    do
-        fileList=( ${file}${^~@}(N) )
-        (( ${#fileList} > 0 )) && print -l -r -- ${fileList}
-    done
-}
-
-
 # Main
 
 enableDebug && setopt xtrace
