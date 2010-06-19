@@ -181,6 +181,8 @@ builtin cd ${tempDir}
 # XXX:  would be handy to run all collectors in parallel this way; will have
 # to eval in order to get all the multios redirects done.
 {
+    : CollectorManager  # identifier for killing this subprocess on signal
+
     local curChunk=1
     while true
     do
@@ -215,8 +217,8 @@ builtin cd ${tempDir}
 } &
 
 # Ensure this background sublist is killed on likely signals.
-trap "kill -n 0 %- 2>/dev/null && kill %-" EXIT
-trap "exit" INT HUP TERM USR1 USR2 QUIT ABRT
+trap 'kill %?CollectorManager 2>/dev/null' \
+    INT HUP TERM USR1 USR2 QUIT ABRT
 
 # Split input into chunks and save the chunk names to a file so we can
 # combine everything later.
