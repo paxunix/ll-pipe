@@ -99,6 +99,45 @@ EOF
 }   # usage
 
 
+# The collector manager runs in the background and is started before any
+# input is actually processed.  It scans continually the next chunk of
+# processed data, and once it's available, passes it to the collectors and
+# continues until all chunks are finished.
+function collectorManager
+{
+    local curChunk=1
+    while true
+    do
+        if [[ -e ${curChunk}.done ]]
+        then
+            print -r -- $(( curChunk++ ))
+
+            # Only stop the loop if the next chunk does not exist and all
+            # chunks are done.
+            [[ -e chunks-done && ! -e ${curChunk}.done ]] && break
+        else
+            ${=TOOL_SLEEP} 1
+        fi
+    done > >(
+            # Collect stdout
+            ${=TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
+                --successful-only \
+                --suffix .out \
+                --output-file /dev/stdout
+        ) > >(
+            # Collect stderr
+            ${=TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
+                --suffix .err \
+                --output-file /dev/stderr
+        ) > >(
+            # Collect meta files
+            ${=TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
+                --suffix .meta \
+                --output-file ${opts[--meta-outfile-json]}
+        )
+}   # collectorManager
+
+
 # Main
 
 enableDebug && setopt xtrace
@@ -154,47 +193,6 @@ then
 fi
 
 builtin cd ${tempDir}
-
-# The collector manager runs in the background and is started before any
-# input is actually processed.  It scans every second for the next chunk of
-# processed data, and once it's available, passes it to the collectors and
-# continues until all chunks are finished.  This gets run in a sublist so
-# that the multios redirects are effectively also wait'd on by this process.
-# XXX:  would be handy to run all collectors in parallel this way; will have
-# to eval in order to get all the multios redirects done.
-function collectorManager
-{
-    local curChunk=1
-    while true
-    do
-        if [[ -e ${curChunk}.done ]]
-        then
-            print -r -- $(( curChunk++ ))
-
-            # Only stop the loop if the next chunk does not exist and all
-            # chunks are done.
-            [[ -e chunks-done && ! -e ${curChunk}.done ]] && break
-        else
-            ${=TOOL_SLEEP} 1
-        fi
-    done > >(
-            # Collect stdout
-            ${=TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
-                --successful-only \
-                --suffix .out \
-                --output-file /dev/stdout
-        ) > >(
-            # Collect stderr
-            ${=TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
-                --suffix .err \
-                --output-file /dev/stderr
-        ) > >(
-            # Collect meta files
-            ${=TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
-                --suffix .meta \
-                --output-file ${opts[--meta-outfile-json]}
-        )
-}   # collectorManager
 
 collectorManager &
 
