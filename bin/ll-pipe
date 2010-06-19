@@ -29,12 +29,11 @@ ABOUT THE COMMAND
           command line.  This allows the command to create extra output
           files with a known, per-chunk suffix for custom collection.
         - command's execution time, exit status, memory usage, etc. are
-          written in JSON form to INF.meta.  It would be wise for the
-          command not to create a .meta file of its own.
-        - INF is removed only if command returns 0.
-        - a 0-byte INF.success file is created if the command executed
-          successfully.  This can be used by collectors to only collect data
-          for chunks processed successfully.
+          written in JSON form to INF.meta.
+        - INF is removed only if command returns 0.  All INF* files are kept
+          if the command fails.
+        - the command's exit status is always written into the INF.done file
+          once the command has exitted.
 
 ABOUT THE COLLECTORS
     All specified collectors are run in parallel.  The list of input chunk
@@ -282,11 +281,11 @@ print -r -l -- ${collector2collectorMetaFile} |
         --suffix .meta-collect \
         --output-file ${opts[--meta-outfile-json]}
 
-# If --clean-all was not given, only clean up .success and list files;
+# If --clean-all was not given, only clean up .done and list files;
 # otherwise remove the directory and its contents.
 if (( ! ${+opts[--clean-all]} ))
 then
-    addFileSuffixes .success < ${listFile} |
+    addFileSuffixes .done < chunk-file-list |
     ${=TOOL_XARGS} \
         --max-procs=${opts[--max-jobs]} \
         --no-run-if-empty \
