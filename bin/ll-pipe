@@ -127,6 +127,7 @@ function collectorManager
         ) > >(
             # Collect stderr
             ${=TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
+                --successful-only \
                 --suffix .err \
                 --output-file /dev/stderr
         ) > >(
