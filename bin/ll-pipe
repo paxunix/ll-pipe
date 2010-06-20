@@ -133,6 +133,18 @@ function collectorManager
 }   # collectorManager
 
 
+# Runs a collector with timeCommand so we can get stats on collectors.
+function runCollector
+{
+    local collectorMetafile=$(${=TOOL_MKTEMP} ${$}.${0:t}.meta-collector.XXXXXXXXXX)
+
+    timeCommand \
+        --kv "action\\tcollector" \
+        --output ${collectorMetafile} \
+        ${@}
+}   # runCollector
+
+
 # Main
 
 enableDebug && setopt xtrace
@@ -222,7 +234,7 @@ collectors+=( ${predefCollector2Command[+meta]} )
 
 # Run the collector manager in the background.  The eval is used to run all
 # collectors simultaneously with multios.
-eval collectorManager ${collectors/(#b)(*)/> >(${match})} &
+eval collectorManager ${collectors/(#b)(*)/> >(runCollector ${match})} &
 
 # Ensure the collector manager and its collectors are killed on likely
 # signals.
@@ -257,10 +269,10 @@ local xargsError=${?}
 wait        # Wait for the collector manager to complete.
 
 # Collect meta files from collectors.  Order doesn't matter.
-print -r -l -- *.meta-collector(N) |
+print -r -l -- *.meta-collector.*(N) |
     ${=TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
         --suffix '' \
-        --output-file ${OLDPWD}/${opts[--meta-outfile-json]}
+        --output-file ${opts[--meta-outfile-json]}
 
 if (( ${+opts[--clean-all]} ))
 then

@@ -49,6 +49,7 @@ do
         --kv "numAttempts\\t${numAttempts}" \
         --kv "inputFile\\t${opts[--input-file]}" \
         --output ${metaFile} \
+        -- \
         ${@} \
         < ${opts[--input-file]} \
         > ${opts[--input-file]}.out \

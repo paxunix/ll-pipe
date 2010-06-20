@@ -38,9 +38,7 @@ function timeCommand
     local isError
     local -a kv
     local -a output
-    zparseopts -D -- "-kv+:=kv"
-
-    zparseopts -E -- "-output:=output"
+    zparseopts -D -- "-kv+:=kv" "-output:=output"
 
     ${=TOOL_TIME} \
         --format '
@@ -60,7 +58,7 @@ numSignals\t%k
 numWaits\t%w
 numInvContextSwitches\t%c
 command\t%C
-'${(pj(\n))kv[@]:#--kv} ${@}
+'${(pj(\n))kv[@]:#--kv} --output ${output[-1]} ${@}
 
     isError=${?}
 
