@@ -27,22 +27,22 @@ DESCRIPTION
 ABOUT THE COMMAND
     The command is executed for each unique input chunk file (hereinafter
     referred to as INF) as follows:
-        - INF's contents are piped to command's stdin.
         - INF is substituted for all occurrences of {} on the command's
           command line.  This allows the command to create extra output
           files with a known, per-chunk suffix for custom collection.
+        - INF's contents are piped to command's stdin.
         - command's execution time, exit status, memory usage, etc. are
           written in JSON form to INF.meta.
         - INF is removed only if command returns 0.  All INF* files are kept
-          if the command fails.
+          if the command fails (unless --clean-all is given).
         - the command's exit status is always written into the INF.done file
-          once the command has exitted.
+          once the command has exited.
 
 ABOUT THE COLLECTORS
     All specified collectors are run in parallel.  The list of input chunk
-    filenames is passed on stdin to each.  A collector can read the contents
-    of each suffixed filename it is interested in and must remove the file
-    once finished.
+    filenames is passed on stdin to each collector as each chunk finishes
+    processing.  A collector can read the contents of each suffixed filename
+    it is interested in and must remove the file once finished.
 
 OPTIONS
     --clean-all
@@ -51,10 +51,21 @@ OPTIONS
 
     --collector command+args
         Any number of --collector options can be given.  They are run in
-        parallel after all input chunks have been processed.  The input
-        chunk filenames are passed on stdin to each collector.  If
-        command+args contains shell-metacharacters or spaces, wrap it in
-        single quotes.
+        parallel as input chunks are been processed.  When each chunk
+        finishes processing, its filename is passed on stdin to each
+        collector.  If command+args contains shell-metacharacters or spaces,
+        wrap it in single quotes.
+
+        If no collectors are specified, the special +stdout and +stderr
+        collectors are enabled.  The +stdout collector collects the .out
+        file containing the stdout output from processing each chunk and
+        dumps it to stdout, preserving order.  The +stderr collector does
+        the same thing, but for stderr in the .err files, and dumps it to
+        stderr, in order.
+
+        If at least one collector is specified, the +stdout and +stderr
+        collectors are NOT enabled.  If stdout and stderr collection is
+        still desired, the collectors for them must be specified.
 
     --lines-per-chunk num
         Optional.  The input data will be split into files with a maximum of
@@ -76,19 +87,19 @@ OPTIONS
         Optional.  Number of seconds to sleep in between retry attempts.
         This is a number or a zsh arithmetic expression that can use the
         'numAttempts' variable, which contains the number of times the
-        command has failed.  Default is 0.
+        command has failed.  Default is 0.  For example, you could back-off
+        on retries:
+            --retry-delay '$((numAttempts * 60))'
 
     --retry-failure-fatal
-        Optional.  If the final retry of a command fails, this script is
-        terminated and no further input will be processed.  The default
-        behaviour is to continue processing even if one chunk fails
-        processing.  This will leave input chunk files lying around if they
-        were never processed due to early exit.
+        Optional.  If the final retry of a command fails, all current
+        processing is terminated and no further input will be processed.
+        The default behaviour is to continue processing even if one chunk
+        fails processing.
 
 OPERANDS
     command     The command to execute for each input chunk.  It receives
-                the chunk's data on stdin and is expected to write its
-                processed output to stdout.
+                the chunk's data on stdin.
 
     arg         Arguments passed to the given command.
 
