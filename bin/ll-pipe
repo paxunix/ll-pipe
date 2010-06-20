@@ -189,6 +189,37 @@ fi
 
 builtin cd ${tempDir}
 
+# Predefined collectors
+local -A predefCollector2Command
+predefCollector2Command=(
+    +stdout         "${=TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
+                        --successful-only \
+                        --suffix .out \
+                        --output-file /dev/stdout"
+
+    +stderr         "${=TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
+                        --successful-only \
+                        --suffix .err \
+                        --output-file /dev/stderr"
+
+    +meta           "${=TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
+                        --successful-only \
+                        --suffix .meta \
+                        --output-file ${opts[--meta-outfile-json]}"
+)
+
+# If no collectors were specified, enable +stdout and +stderr.
+if (( ${#collectors} == 0 ))
+then
+    collectors+=(
+        ${predefCollector2Command[+stdout]}
+        ${predefCollector2Command[+stderr]}
+    )
+fi
+
+# Always enable the meta collector.
+collectors+=( ${predefCollector2Command[+meta]} )
+
 # Run the collector manager in the background.  The eval is used to run all
 # collectors simultaneously with multios.
 eval collectorManager ${collectors/(#b)(*)/> >(${match})} &
