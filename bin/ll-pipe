@@ -242,7 +242,7 @@ else
     print -l -r -- [0-9]##.done(N) |
     while read -r file
     do
-        (( ${(f)"$(< ${file})"} == 0 )) && print -l -r -- ${file:r}{,.*}
+        (( ${(f)"$(< ${file})":-1} == 0 )) && print -l -r -- ${file:r}{,.*}
     done |
     ${=TOOL_XARGS} \
         --max-procs=${opts[--max-jobs]} \
