@@ -26,7 +26,7 @@ function jsonifyFile
     ${=TOOL_PERL} -i -n \
         -e 'BEGIN { use JSON::XS; }' \
         -e 's(^ \s* (.*?) \s* \t \s* (.*) \s* $)( $obj{$1} = $2 )ex;' \
-        -e 'eof && print to_json(\%obj), "\n";' ${1}
+        -e 'eof && print JSON::XS->new->utf8->pretty(0)->encode(\%obj), "\n";' ${1}
 }
 
 
