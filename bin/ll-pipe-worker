@@ -3,6 +3,13 @@
 # Intended for use by ll-pipe thus there is no error checking of any kind.
 
 # $Id$
+# Save exit status of the command.
+function onExit
+{
+    print -r -- ${isError} > ${opts[--input-file]}.done
+    return ${isError}
+}
+
 
 enableDebug && setopt xtrace
 
@@ -15,14 +22,16 @@ zparseopts -D -A opts -- \
     "-retry-delay:" \
     "-retry-failure-fatal" \
 
-# XXX:  we need an exit/signal handler
 # XXX:  messages should only be in verbose mode?
 
 # Receives metadata about the processing.
 local metaFile=${opts[--input-file]}.meta
 
 local numAttempts=0
-local isError=0
+local isError=1     # Assume failure.
+
+trap 'isError=${?}; numAttempts=${opts[--max-attempts]}; return ${isError}' INT HUP TERM USR1 USR2 QUIT ABRT
+trap 'onExit' EXIT
 
 # Try the command until it succeeds or runs out of retries.
 while (( numAttempts < ${opts[--max-attempts]} ))
@@ -59,9 +68,6 @@ do
     (( ${(e)opts[--retry-delay]} != 0 )) &&
         ${=TOOL_SLEEP} ${(e)opts[--retry-delay]}
 done
-
-# This worker is done processing.
-print -r -- ${isError} > ${opts[--input-file]}.done
 
 # If the command failed and failure is fatal, immediately return 255 so that
 # the wrapper xargs kills its kids and exits.
