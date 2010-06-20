@@ -64,6 +64,12 @@ command\t%C
 
     isError=${?}
 
+    # XXX:  Work around bug in GNU time 1.7 where exit status is incorrect
+    # if command was killed by signal.  Patch has been submitted to GNU time
+    # maintainers.
+    # http://github.com/paxunix/ll-pipe/issues#issue/1
+    ${=TOOL_SED} -i -e '/^exitStatus/s/\t.*/\t'${isError}'/' ${output[2]}
+
     jsonifyFile ${output[2]}
 
     return ${isError}
