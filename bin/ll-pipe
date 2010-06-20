@@ -231,23 +231,30 @@ print -r -l -- *.meta-collector(N) |
         --suffix '' \
         --output-file ${OLDPWD}/${opts[--meta-outfile-json]}
 
-# If --clean-all was not given, only clean up list files and .done files
-# from successful chunks; otherwise remove the directory and its contents.
-if (( ! ${+opts[--clean-all]} ))
+if (( ${+opts[--clean-all]} ))
 then
-    print -l -r -- chunks-done [0-9]*.done(N) |
+    builtin cd -
+    ${=TOOL_RM} -fr ${tempDir}
+else
+    # If not cleaning up everything, only remove chunk-related files for
+    # successful chunks.
+    local file
+    print -l -r -- [0-9]##.done(N) |
+    while read -r file
+    do
+        (( ${(f)"$(< ${file})"} == 0 )) && print -l -r -- ${file:r}{,.*}
+    done |
     ${=TOOL_XARGS} \
         --max-procs=${opts[--max-jobs]} \
         --no-run-if-empty \
         ${=TOOL_RM} -f
 
+    ${=TOOL_RM} -f chunks-done
+
     # Try to remove our temporary dir.  Ignore failure since it may have
     # files from failed chunks in it.
     builtin cd -
     ${=TOOL_RMDIR} --ignore-fail-on-non-empty ${tempDir}
-else
-    builtin cd -
-    ${=TOOL_RM} -fr ${tempDir}
 fi
 
 return ${xargsError}
