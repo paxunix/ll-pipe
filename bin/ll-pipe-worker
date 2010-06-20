@@ -35,6 +35,7 @@ trap 'isError=${?}; numAttempts=${opts[--max-attempts]}; return ${isError}' INT 
 trap 'onExit' EXIT
 
 # Try the command until it succeeds or runs out of retries.
+local delay
 while (( numAttempts < ${opts[--max-attempts]} ))
 do
     numAttempts=$((numAttempts + 1))
@@ -66,8 +67,9 @@ do
 
     message -u2 "Command failed (chunk ${opts[--input-file]:t}, attempt #${numAttempts}/${opts[--max-attempts]})..."
 
-    (( ${(e)opts[--retry-delay]} != 0 )) &&
-        ${=TOOL_SLEEP} ${(e)opts[--retry-delay]}
+    delay=${(e)opts[--retry-delay]}
+    (( delay != 0 )) &&
+        ${=TOOL_SLEEP} ${delay}
 done
 
 # If the command failed and failure is fatal, immediately return 255 so that
