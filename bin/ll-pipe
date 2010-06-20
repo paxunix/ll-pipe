@@ -118,24 +118,7 @@ function collectorManager
         else
             ${=TOOL_SLEEP} 1
         fi
-    done > >(
-            # Collect stdout
-            ${=TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
-                --successful-only \
-                --suffix .out \
-                --output-file /dev/stdout
-        ) > >(
-            # Collect stderr
-            ${=TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
-                --successful-only \
-                --suffix .err \
-                --output-file /dev/stderr
-        ) > >(
-            # Collect meta files
-            ${=TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
-                --suffix .meta \
-                --output-file ${opts[--meta-outfile-json]}
-        )
+    done
 }   # collectorManager
 
 
@@ -195,9 +178,14 @@ fi
 
 builtin cd ${tempDir}
 
-collectorManager &
+# Run the collector manager in the background.  The eval is used to run all
+# collectors simultaneously with multios.  The final /dev/null is in case no
+# collectors are specified to make sure the collector manager's output (the
+# list of chunk files) does not show up as output.
+eval collectorManager ${collectors/(#b)(*)/> >(${match})} > /dev/null &
 
-# Ensure this background sublist is killed on likely signals.
+# Ensure the collector manager and its collectors are killed on likely
+# signals.
 trap 'kill %?collectorManager 2>/dev/null' \
     INT HUP TERM USR1 USR2 QUIT ABRT
 
@@ -227,24 +215,7 @@ local xargsError=${?}
 # Signal the collector manager that all input chunks have been processed.
 : > chunks-done
 
-# Run all user-specified collectors.  XXX:  it would be nice to run this
-# with the stdout and stderr collectors as well.
-local collectorFile=1
-for collector in ${collectors}
-do
-    message -u2 "Running collector ${collector%%[[:space:]]}..."
-
-    timeCommand \
-        --kv "action\\tcollector" \
-        --output $((collectorFile++)).meta-collect \
-        ${(z)collector} < chunk-file-list &
-
-    # XXX: need to capture exit status from each collector and OR it with
-    # the xargs status to ultimately only return 0 if nothing in this whole
-    # pipline failed.
-done
-
-wait        # Wait for all collectors and the collector manager to complete.
+wait        # Wait for the collector manager to complete.
 
 # Collect meta files from collectors.  Order doesn't matter.
 print -r -l -- *.meta-collector(N) |
