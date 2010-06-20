@@ -194,8 +194,7 @@ trap 'kill %?collectorManager 2>/dev/null' \
 message -u2 "Splitting input into chunks..."
 
 ${=TOOL_LL_PIPE_SPLIT} \
-    --lines-per-chunk ${opts[--lines-per-chunk]} \
-    > chunk-file-list |    # note the pipe
+    --lines-per-chunk ${opts[--lines-per-chunk]} |
 
 # Process each chunk.
 ${=TOOL_XARGS} \
@@ -227,7 +226,7 @@ print -r -l -- *.meta-collector(N) |
 # from successful chunks; otherwise remove the directory and its contents.
 if (( ! ${+opts[--clean-all]} ))
 then
-    print -l -r -- chunks-done chunk-file-list [0-9]*.done(N) |
+    print -l -r -- chunks-done [0-9]*.done(N) |
     ${=TOOL_XARGS} \
         --max-procs=${opts[--max-jobs]} \
         --no-run-if-empty \
