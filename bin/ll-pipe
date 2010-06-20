@@ -190,10 +190,8 @@ fi
 builtin cd ${tempDir}
 
 # Run the collector manager in the background.  The eval is used to run all
-# collectors simultaneously with multios.  The final /dev/null is in case no
-# collectors are specified to make sure the collector manager's output (the
-# list of chunk files) does not show up as output.
-eval collectorManager ${collectors/(#b)(*)/> >(${match})} > /dev/null &
+# collectors simultaneously with multios.
+eval collectorManager ${collectors/(#b)(*)/> >(${match})} &
 
 # Ensure the collector manager and its collectors are killed on likely
 # signals.
