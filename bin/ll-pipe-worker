@@ -30,13 +30,14 @@ local metaFile=${opts[--input-file]}.meta
 
 local numAttempts=0
 local isError=1     # Assume failure.
+local gotSignal=0
 
-trap 'isError=${?}; numAttempts=${opts[--max-attempts]}; return ${isError}' INT HUP TERM USR1 USR2 QUIT ABRT
+trap 'isError=${?}; gotSignal=1; return ${isError}' INT HUP TERM USR1 USR2 QUIT ABRT
 trap 'onExit' EXIT
 
 # Try the command until it succeeds or runs out of retries.
 local delay
-while (( numAttempts < ${opts[--max-attempts]} ))
+while (( numAttempts < ${opts[--max-attempts]} && ! gotSignal ))
 do
     numAttempts=$((numAttempts + 1))
 
@@ -72,6 +73,12 @@ do
     (( delay != 0 )) &&
         ${=TOOL_SLEEP} ${delay}
 done
+
+if (( gotSignal ))
+then
+    message -u2 "Caught SIG${signals[isError+1]}; exiting..."
+    return ${isError}
+fi
 
 # If the command failed and failure is fatal, immediately return 255 so that
 # the wrapper xargs kills its kids and exits.
