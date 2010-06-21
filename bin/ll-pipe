@@ -223,23 +223,21 @@ predefCollector2Command=(
 # If no collectors were specified, enable +stdout and +stderr.
 if (( ${#collectors} == 0 ))
 then
-    collectors+=(
-        ${predefCollector2Command[+stdout]}
-        ${predefCollector2Command[+stderr]}
-    )
-else
-    # If any predefined collectors were given, substitute their commands.
-    for ((i = 1; i <= ${#collectors}; i++))
-    do
-        if (( ${+predefCollector2Command[${collectors[i]}]} ))
-        then
-            collectors[i]=${predefCollector2Command[${collectors[i]}]}
-        fi
-    done
+    collectors=( +stdout +stderr )
 fi
 
 # Always enable the meta collector.
-collectors+=( ${predefCollector2Command[+meta]} )
+collectors+=( +meta )
+
+# Replace any predefined collector names with their commands.
+local i
+for ((i = 1; i <= ${#collectors}; i++))
+do
+    if (( ${+predefCollector2Command[${collectors[i]}]} ))
+    then
+        collectors[i]=${predefCollector2Command[${collectors[i]}]}
+    fi
+done
 
 # Run the collector manager in the background.  The eval is used to run all
 # collectors simultaneously with multios.
