@@ -21,9 +21,6 @@ DESCRIPTION
         A B C D => command+arguments => A' B' C' D'
     where command+arguments are be applied to A, B, C and D in parallel.
 
-    The command and any filenames passed as arguments should not be
-    specified with relative paths.
-
 ABOUT THE COMMAND
     The command is executed for each unique input chunk file (hereinafter
     referred to as INF) as follows:
@@ -119,13 +116,14 @@ function collectorManager
     local curChunk=1
     while true
     do
-        if [[ -e ${curChunk}.done ]]
+        if [[ -e ${tempDir}/${curChunk}.done ]]
         then
-            print -r -- $(( curChunk++ ))
+            print -r -- ${tempDir}/$(( curChunk++ ))
 
             # Only stop the loop if the next chunk does not exist and all
             # chunks are done.
-            [[ -e chunks-done && ! -e ${curChunk}.done ]] && break
+            [[ -e ${tempDir}/chunks-done &&
+               ! -e ${tempDir}/${curChunk}.done ]] && break
         else
             ${=TOOL_SLEEP} 1
         fi
@@ -136,7 +134,7 @@ function collectorManager
 # Runs a collector with timeCommand so we can get stats on collectors.
 function runCollector
 {
-    local collectorMetafile=$(${=TOOL_MKTEMP} ${$}.${0:t}.meta-collector.XXXXXXXXXX)
+    local collectorMetafile=$(${=TOOL_MKTEMP} ${tempDir}/${$}.${0:t}.meta-collector.XXXXXXXXXX)
 
     timeCommand \
         --kv "action\\tcollector" \
@@ -188,18 +186,12 @@ fi
 : ${opts[--meta-outfile-json]:=/dev/null}
 : ${opts[--retry-delay]:=0}
 
-# meta-outfile-json must be an absolute path because we will be writing to
-# it from within the temporary working dir.
-opts[--meta-outfile-json]=$(absPath ${opts[--meta-outfile-json]})
-
-local tempDir=$(${=TOOL_MKTEMP} -d ${TMPDIR:-.}/${$}.${0:t}.XXXXXXXXXX)
+local tempDir=$(${=TOOL_MKTEMP} -d $(absPath ${TMPDIR:-.})/${$}.${0:t}.XXXXXXXXXX)
 if (( ${?} ))
 then
     error "Failed to create temporary work directory."
     return 1
 fi
-
-builtin cd ${tempDir}
 
 # Predefined collectors
 local -A predefCollector2Command
@@ -253,7 +245,8 @@ trap 'kill %?collectorManager 2>/dev/null' \
 message -u2 "Splitting input into chunks..."
 
 ${=TOOL_LL_PIPE_SPLIT} \
-    --lines-per-chunk ${opts[--lines-per-chunk]} |
+    --lines-per-chunk ${opts[--lines-per-chunk]} \
+    --directory ${tempDir} |
 
 # Process each chunk.
 ${=TOOL_XARGS} \
@@ -271,12 +264,12 @@ ${=TOOL_XARGS} \
 local xargsError=${?}
 
 # Signal the collector manager that all input chunks have been processed.
-: > chunks-done
+: > ${tempDir}/chunks-done
 
 wait        # Wait for the collector manager to complete.
 
 # Collect meta files from collectors.  Order doesn't matter.
-print -r -l -- *.meta-collector.*(N) |
+print -r -l -- ${tempDir}/*.meta-collector.*(N) |
     ${=TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
         --suffix '' \
         --output-file ${opts[--meta-outfile-json]}
@@ -289,7 +282,7 @@ else
     # If not cleaning up everything, only remove chunk-related files for
     # successful chunks.
     local file
-    print -l -r -- [0-9]##.done(N) |
+    print -l -r -- ${tempDir}/[0-9]##.done(N) |
     while read -r file
     do
         (( ${(f)"$(< ${file})":-1} == 0 )) && print -l -r -- ${file:r}{,.*}
@@ -299,7 +292,7 @@ else
         --no-run-if-empty \
         ${=TOOL_RM} -f
 
-    ${=TOOL_RM} -f chunks-done
+    ${=TOOL_RM} -f ${tempDir}/chunks-done
 
     # Try to remove our temporary dir.  Ignore failure since it may have
     # files from failed chunks in it.
