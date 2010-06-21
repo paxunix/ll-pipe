@@ -66,9 +66,12 @@ command\t%C
     # if command was killed by signal.  Patch has been submitted to GNU time
     # maintainers.
     # http://github.com/paxunix/ll-pipe/issues#issue/1
-    ${=TOOL_SED} -i -e '/^exitStatus/s/\t.*/\t'${isError}'/' ${output[2]}
+    if [[ -e ${output[2]} ]]
+    then
+        ${=TOOL_SED} -i -e '/^exitStatus/s/\t.*/\t'${isError}'/' ${output[2]}
 
-    jsonifyFile ${output[2]}
+        jsonifyFile ${output[2]}
+    fi
 
     return ${isError}
 }
