@@ -227,6 +227,15 @@ then
         ${predefCollector2Command[+stdout]}
         ${predefCollector2Command[+stderr]}
     )
+else
+    # If any predefined collectors were given, substitute their commands.
+    for ((i = 1; i <= ${#collectors}; i++))
+    do
+        if (( ${+predefCollector2Command[${collectors[i]}]} ))
+        then
+            collectors[i]=${predefCollector2Command[${collectors[i]}]}
+        fi
+    done
 fi
 
 # Always enable the meta collector.
