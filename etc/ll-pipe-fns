@@ -20,7 +20,6 @@ findTool zsh || return 1
 # Used to JSON-ify the output from GNU time, given custom formatting as
 # applied by timeCommand().
 # $1: Input file
-# $2: tempfile template
 function jsonifyFile
 {
     ${=TOOL_PERL} -i -n \
