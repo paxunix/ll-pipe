@@ -27,7 +27,7 @@ ABOUT THE COMMAND
           files with a known, per-chunk suffix for custom collection.
         - INF's contents are piped to command's stdin.
         - command's execution time, exit status, memory usage, etc. are
-          written in JSON form to INF.meta.
+          written to INF.meta.
         - INF is removed only if command returns 0.  All INF* files are kept
           if the command fails (unless --clean-all is given).
         - the command's exit status is always written into the INF.done file
@@ -74,7 +74,7 @@ OPTIONS
         Optional.  Will run the command on num chunks in parallel until all
         input is consumed.  Default is 1.
 
-    --meta-outfile-json file
+    --meta-outfile file
         Optional.  Meta information (e.g. runtime, exit status, etc.) will
         be collected for various parts of the pipeline and saved to file.
 
@@ -138,7 +138,7 @@ function runCollector
     local collectorMetafile=$(${=TOOL_MKTEMP} ${tempDir}/${$}.${0:t}.meta-collector.XXXXXXXXXX)
 
     timeCommand \
-        --kv "action\\tcollector" \
+        --kv "action:collector" \
         --output ${collectorMetafile} \
         ${@}
 }   # runCollector
@@ -165,7 +165,7 @@ zparseopts -D -A opts -- \
     "-lines-per-chunk:" \
     "-max-attempts:" \
     "-max-jobs:" \
-    "-meta-outfile-json:" \
+    "-meta-outfile:" \
     "-retry-delay:" \
     "-retry-failure-fatal" \
     "-verbose" \
@@ -187,7 +187,7 @@ fi
 : ${opts[--lines-per-chunk]:=1000}
 : ${opts[--max-attempts]:=5}
 : ${opts[--max-jobs]:=1}
-: ${opts[--meta-outfile-json]:=/dev/null}
+: ${opts[--meta-outfile]:=/dev/null}
 : ${opts[--retry-delay]:=0}
 
 if (( ${+opts[--verbose]} ))
@@ -218,7 +218,7 @@ predefCollector2Command=(
     +meta           "${=TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
                         --successful-only \
                         --suffix .meta \
-                        --output-file ${opts[--meta-outfile-json]}"
+                        --output-file ${opts[--meta-outfile]}"
 )
 
 # If no collectors were specified, enable +stdout and +stderr.
@@ -281,7 +281,7 @@ wait        # Wait for the collector manager to complete.
 print -r -l -- ${tempDir}/*.meta-collector.*(N) |
     ${=TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
         --suffix '' \
-        --output-file ${opts[--meta-outfile-json]}
+        --output-file ${opts[--meta-outfile]}
 
 if (( ${+opts[--clean-all]} ))
 then

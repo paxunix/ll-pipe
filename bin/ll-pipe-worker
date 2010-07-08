@@ -46,9 +46,9 @@ do
     # Time the command to get stats about it.  stdout overwrites stdout from
     # any prior attempt.  stderr is accumulated across attempts.
     timeCommand \
-        --kv "action\\tcommand" \
-        --kv "numAttempts\\t${numAttempts}" \
-        --kv "inputFile\\t${opts[--input-file]}" \
+        --kv "action:command" \
+        --kv "numAttempts:${numAttempts}" \
+        --kv "inputFile:${opts[--input-file]}" \
         --output ${metaFile} \
         -- \
         ${@} \

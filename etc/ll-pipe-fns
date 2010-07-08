@@ -138,18 +138,6 @@ findTool xargs || return 1
 findTool zsh || return 1
 
 
-# Used to JSON-ify the output from GNU time, given custom formatting as
-# applied by timeCommand().
-# $1: Input file
-function jsonifyFile
-{
-    ${=TOOL_PERL} -i -n \
-        -e 'BEGIN { use JSON::XS; }' \
-        -e 's(^ \s* (.*?) \s* \t \s* (.*) \s* $)( $obj{$1} = $2 )ex;' \
-        -e 'eof && print JSON::XS->new->utf8->pretty(0)->encode(\%obj), "\n";' ${1}
-}
-
-
 # Run GNU time with the given command+arguments and a preset format string,
 # with additional optional keys+values appended to it.
 # Arguments to --kv are "key value".
@@ -162,23 +150,25 @@ function timeCommand
 
     ${=TOOL_TIME} \
         --format '
-exitStatus\t%x
-realTime\t%E
-userTime\t%U
-systemTime\t%S
-cpuPercent\t%P
-maxRSS\t%M
-avgRSS\t%t
-avgMemUse\t%K
-numSwaps\t%W
-numPageFaults\t%F
-numInputs\t%I
-numOutputs\t%O
-numSignals\t%k
-numWaits\t%w
-numInvContextSwitches\t%c
-command\t%C
-'${(pj(\n))kv[@]:#--kv} --output ${output[-1]} ${@}
+---START
+exitStatus:%x
+realTime:%E
+userTime:%U
+systemTime:%S
+cpuPercent:%P
+maxRSS:%M
+avgRSS:%t
+avgMemUse:%K
+numSwaps:%W
+numPageFaults:%F
+numInputs:%I
+numOutputs:%O
+numSignals:%k
+numWaits:%w
+numInvContextSwitches:%c
+command:%C
+'${(pj(\n))kv[@]:#--kv}'
+---END' --output ${output[-1]} ${@}
 
     isError=${?}
 
@@ -188,9 +178,8 @@ command\t%C
     # http://github.com/paxunix/ll-pipe/issues#issue/1
     if [[ -e ${output[2]} ]]
     then
-        ${=TOOL_SED} -i -e '/^exitStatus/s/\t.*/\t'${isError}'/' ${output[2]}
-
-        jsonifyFile ${output[2]} || isError=1
+        ${=TOOL_SED} -i -e '/^exitStatus/s/ .*/ '${isError}'/' ${output[2]} ||
+        isError=${?}
     fi
 
     return ${isError}
