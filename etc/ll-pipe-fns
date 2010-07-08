@@ -190,7 +190,7 @@ command\t%C
     then
         ${=TOOL_SED} -i -e '/^exitStatus/s/\t.*/\t'${isError}'/' ${output[2]}
 
-        jsonifyFile ${output[2]}
+        jsonifyFile ${output[2]} || isError=1
     fi
 
     return ${isError}
