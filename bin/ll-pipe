@@ -84,7 +84,7 @@ OPTIONS
         'numAttempts' variable, which contains the number of times the
         command has failed.  Default is 0.  For example, you could back-off
         on retries:
-            --retry-delay '$((numAttempts * 60))'
+            --retry-delay '\$((numAttempts * 60))'
 
     --retry-failure-fatal
         Optional.  If the final retry of a command fails, all current
