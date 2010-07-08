@@ -145,9 +145,11 @@ function runCollector
 
 # Main
 
-enableDebug && setopt xtrace
+setopt nofunctionargzero
 
 . ${0:h}/../etc/ll-pipe-fns || return 1
+
+enableDebug && setopt xtrace
 
 local -a collectors
 zparseopts -D -E -- \
