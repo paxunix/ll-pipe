@@ -15,6 +15,9 @@
 
 enableDebug && setopt xtrace
 
+. ${0:h}/../etc/ll-pipe-fns || return 1
+
+
 local -A opts
 zparseopts -D -A opts -- \
     "-successful-only" \
@@ -37,6 +40,8 @@ do
 
     if [[ -r ${file}${opts[--suffix]} ]]
     then
+        verbose "Collecting chunk ${file}${opts[--suffix]}"
+
         ${=TOOL_CAT} ${file}${opts[--suffix]} >> ${opts[--output-file]}
         ${=TOOL_RM} -f ${file}${opts[--suffix]}
     fi

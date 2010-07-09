@@ -13,7 +13,7 @@ function verbose
     setopt localoptions localtraps noxtrace noverbose 2>/dev/null
     enableDebug && setopt xtrace
 
-    (( ll_pipe_verbose >= 1 )) && print -u3 -r -- '--' ${@}
+    (( ll_pipe_verbose >= 1 )) && print -u3 -r -- '++' ${@}
 }
 
 

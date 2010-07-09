@@ -138,6 +138,8 @@ function runCollector
 {
     local collectorMetafile=$(${=TOOL_MKTEMP} ${tempDir}/${$}.${0:t}.meta-collector.XXXXXXXXXX)
 
+    verbose "Starting collector ${@}"
+
     timeCommand \
         --kv "action:collector" \
         --output ${collectorMetafile} \
@@ -257,7 +259,7 @@ trap 'kill %?collectorManager 2>/dev/null' \
 
 # Split input into chunks and save the chunk names to a file so we can
 # combine everything later.
-verbose "Splitting input into chunks..."
+verbose "Splitting input into chunks"
 
 ${=TOOL_LL_PIPE_SPLIT} \
     --lines-per-chunk ${opts[--lines-per-chunk]} \
@@ -280,6 +282,8 @@ local xargsError=${?}
 
 # Signal the collector manager that all input chunks have been processed.
 : > ${tempDir}/chunks-done
+
+verbose "All chunks processed."
 
 wait        # Wait for the collector manager to complete.
 
