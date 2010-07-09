@@ -8,15 +8,6 @@ function absPath
 }
 
 
-function message
-{
-    setopt localoptions localtraps noxtrace noverbose 2>/dev/null
-    enableDebug && setopt xtrace
-
-    print -u2 -r -- '--' ${@}
-}
-
-
 function verbose
 {
     setopt localoptions localtraps noxtrace noverbose 2>/dev/null
