@@ -42,12 +42,7 @@ function findTool
     setopt extendedglob
 
     local -A opts
-    zparseopts -D -K -A opts 'e:' 'f:' 'p' 'v' 'x'
-
-    if (( ${+opts[-v]} ))
-    then
-        local g_verbose=1
-    fi
+    zparseopts -D -K -A opts 'e:' 'x'
 
     local UNAME=${UNAME:-$(/bin/uname -s)}
 
@@ -70,37 +65,21 @@ function findTool
     # replace any with an underscore.
     local prettyToolNameVar=${opts[-e]:-TOOL_${(U)tool//[^[:alnum:]]/_}}
 
-    # If there is an environment override for this tool, use it instead.
-    if [[ -n ${(P)prettyToolNameVar} ]]
-    then
-        verbose "Using current value for ${prettyToolNameVar}"
-        return
-    fi
-
     local toolPath=$( path=( ${(zs(:))@:-${path}} ); builtin whence -p ${tool} )
 
     if [[ -n ${toolPath} ]]
     then
-        if (( ${+opts[-p]} ))
+        if (( ${+opts[-x]} ))
         then
-            print -r -- ${toolPath}
-        else
-            if (( ${+opts[-x]} ))
-            then
-                export ${prettyToolNameVar}
-                verbose "export ${prettyToolNameVar}"
-            fi
-
-            eval ${prettyToolNameVar}=${toolPath}
-
-            verbose "${prettyToolNameVar}=${toolPath}"
+            export ${prettyToolNameVar}
         fi
 
+        eval ${prettyToolNameVar}=${toolPath}
         return 0
     fi
 
     # Couldn't find it; report error.
-    ${opts[-f]:-error} "failed to set ${prettyToolNameVar}:  couldn't find '${tool}'"
+    error "failed to set ${prettyToolNameVar}:  couldn't find '${tool}'"
 
     return 1
 }
