@@ -41,14 +41,14 @@ while (( numAttempts < ${opts[--max-attempts]} && ! gotSignal ))
 do
     numAttempts=$((numAttempts + 1))
 
-    verbose "Executing command (chunk ${opts[--input-file]:t}, attempt #${numAttempts}/${opts[--max-attempts]})..."
+    verbose "Executing command (chunk ${opts[--input-file]:t}, attempt #${numAttempts}/${opts[--max-attempts]})"
 
     # Time the command to get stats about it.  stdout overwrites stdout from
     # any prior attempt.  stderr is accumulated across attempts.
     timeCommand \
-        --kv "action\\tcommand" \
-        --kv "numAttempts\\t${numAttempts}" \
-        --kv "inputFile\\t${opts[--input-file]}" \
+        --kv "action:command" \
+        --kv "numAttempts:${numAttempts}" \
+        --kv "inputFile:${opts[--input-file]}" \
         --output ${metaFile} \
         -- \
         ${@} \
@@ -60,14 +60,14 @@ do
 
     if (( ! isError ))
     then
-        verbose "Command succeeded (chunk ${opts[--input-file]:t}, attempt #${numAttempts}/${opts[--max-attempts]})..."
+        verbose "Command succeeded (chunk ${opts[--input-file]:t}, attempt #${numAttempts}/${opts[--max-attempts]})"
 
         # On success, delete the input file.
         ${=TOOL_RM} -f ${opts[--input-file]}
         break
     fi
 
-    verbose "Command failed (chunk ${opts[--input-file]:t}, attempt #${numAttempts}/${opts[--max-attempts]})..."
+    verbose "Command failed (chunk ${opts[--input-file]:t}, attempt #${numAttempts}/${opts[--max-attempts]})"
 
     delay=${(e)opts[--retry-delay]}
     (( delay != 0 )) &&
@@ -76,7 +76,7 @@ done
 
 if (( gotSignal ))
 then
-    verbose "Caught SIG${signals[isError+1]}; exiting..."
+    verbose "Caught SIG${signals[isError+1]}; exiting"
     return ${isError}
 fi
 
@@ -84,7 +84,7 @@ fi
 # the wrapper xargs kills its kids and exits.
 if (( isError && ${+opts[--retry-failure-fatal]} ))
 then
-    verbose "Command failed ${opts[--max-attempts]} attempts (chunk ${opts[--input-file]:t}).  Aborting all workers..."
+    verbose "Command failed ${opts[--max-attempts]} attempts (chunk ${opts[--input-file]:t}).  Aborting all workers."
     isError=255
 fi
 

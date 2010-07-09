@@ -27,7 +27,7 @@ ABOUT THE COMMAND
           files with a known, per-chunk suffix for custom collection.
         - INF's contents are piped to command's stdin.
         - command's execution time, exit status, memory usage, etc. are
-          written in JSON form to INF.meta.
+          written to INF.meta.
         - INF is removed only if command returns 0.  All INF* files are kept
           if the command fails (unless --clean-all is given).
         - the command's exit status is always written into the INF.done file
@@ -74,7 +74,7 @@ OPTIONS
         Optional.  Will run the command on num chunks in parallel until all
         input is consumed.  Default is 1.
 
-    --meta-outfile-json file
+    --meta-outfile file
         Optional.  Meta information (e.g. runtime, exit status, etc.) will
         be collected for various parts of the pipeline and saved to file.
 
@@ -93,7 +93,8 @@ OPTIONS
         fails processing.
 
     --verbose
-        Optional.  Output diagnostic status info to stderr.
+        Optional.  Output diagnostic status info to file descriptor 3.  If
+        fd 3 is not already redirected, it will be redirected to /dev/tty.
 
 OPERANDS
     command     The command to execute for each input chunk.  It receives
@@ -137,8 +138,10 @@ function runCollector
 {
     local collectorMetafile=$(${=TOOL_MKTEMP} ${tempDir}/${$}.${0:t}.meta-collector.XXXXXXXXXX)
 
+    verbose "Starting collector ${@}"
+
     timeCommand \
-        --kv "action\\tcollector" \
+        --kv "action:collector" \
         --output ${collectorMetafile} \
         ${@}
 }   # runCollector
@@ -165,7 +168,7 @@ zparseopts -D -A opts -- \
     "-lines-per-chunk:" \
     "-max-attempts:" \
     "-max-jobs:" \
-    "-meta-outfile-json:" \
+    "-meta-outfile:" \
     "-retry-delay:" \
     "-retry-failure-fatal" \
     "-verbose" \
@@ -187,12 +190,17 @@ fi
 : ${opts[--lines-per-chunk]:=1000}
 : ${opts[--max-attempts]:=5}
 : ${opts[--max-jobs]:=1}
-: ${opts[--meta-outfile-json]:=/dev/null}
+: ${opts[--meta-outfile]:=/dev/null}
 : ${opts[--retry-delay]:=0}
 
 if (( ${+opts[--verbose]} ))
 then
-    g_verbose=1
+    export ll_pipe_verbose=1
+
+    # Since verbose output is written to fd 3, make sure it's open.
+    # Otherwise, redirect it to /dev/tty.
+    eval ': >&3' 2>/dev/null || exec 3>/dev/tty
+
 fi
 
 local tempDir=$(${=TOOL_MKTEMP} -d $(absPath ${TMPDIR:-.})/${$}.${0:t}.XXXXXXXXXX)
@@ -218,7 +226,7 @@ predefCollector2Command=(
     +meta           "${=TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
                         --successful-only \
                         --suffix .meta \
-                        --output-file ${opts[--meta-outfile-json]}"
+                        --output-file ${opts[--meta-outfile]}"
 )
 
 # If no collectors were specified, enable +stdout and +stderr.
@@ -251,7 +259,7 @@ trap 'kill %?collectorManager 2>/dev/null' \
 
 # Split input into chunks and save the chunk names to a file so we can
 # combine everything later.
-verbose "Splitting input into chunks..."
+verbose "Splitting input into chunks"
 
 ${=TOOL_LL_PIPE_SPLIT} \
     --lines-per-chunk ${opts[--lines-per-chunk]} \
@@ -275,13 +283,15 @@ local xargsError=${?}
 # Signal the collector manager that all input chunks have been processed.
 : > ${tempDir}/chunks-done
 
+verbose "All chunks processed."
+
 wait        # Wait for the collector manager to complete.
 
 # Collect meta files from collectors.  Order doesn't matter.
 print -r -l -- ${tempDir}/*.meta-collector.*(N) |
     ${=TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
         --suffix '' \
-        --output-file ${opts[--meta-outfile-json]}
+        --output-file ${opts[--meta-outfile]}
 
 if (( ${+opts[--clean-all]} ))
 then
