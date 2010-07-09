@@ -238,6 +238,9 @@ fi
 # Always enable the meta collector.
 collectors+=( +meta )
 
+# Empty the meta collector output file.
+: ${=TOOL_CAT} /dev/null > ${opts[--meta-outfile]}
+
 # Replace any predefined collector names with their commands.
 local i
 for ((i = 1; i <= ${#collectors}; i++))
