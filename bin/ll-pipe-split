@@ -88,6 +88,9 @@ my $fileName;
 my $lineCount = 0;
 my $fileCount = 1;
 
+# Force flush on stdout after printing name of each chunk.
+$| = 1;
+
 while (<>)
 {
     if (!$fileHandle)
