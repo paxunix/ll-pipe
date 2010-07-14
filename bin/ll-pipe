@@ -138,12 +138,12 @@ function runCollector
 {
     local collectorMetafile=$(${=TOOL_MKTEMP} ${tempDir}/${$}.${0:t}.meta-collector.XXXXXXXXXX)
 
-    verbose "Starting collector ${@}"
+    verbose "Starting collector ${(z)@}"
 
-    timeCommand \
+    eval timeCommand \
         --kv "action:collector" \
         --output ${collectorMetafile} \
-        ${@}
+        ${(z)@}
 }   # runCollector
 
 
@@ -253,7 +253,7 @@ done
 
 # Run the collector manager in the background.  The eval is used to run all
 # collectors simultaneously with multios.
-eval collectorManager ${collectors/(#b)(*)/> >(runCollector ${match})} &
+eval collectorManager ${collectors/(#b)(*)/> >(runCollector ${(q)match})} &
 
 # Ensure the collector manager and its collectors are killed on likely
 # signals.
