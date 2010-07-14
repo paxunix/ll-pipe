@@ -239,7 +239,7 @@ fi
 collectors+=( +meta )
 
 # Empty the meta collector output file.
-: ${=TOOL_CAT} /dev/null > ${opts[--meta-outfile]}
+: > ${opts[--meta-outfile]}
 
 # Replace any predefined collector names with their commands.
 local i
