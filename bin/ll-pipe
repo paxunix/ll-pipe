@@ -314,7 +314,7 @@ else
         --no-run-if-empty \
         ${=TOOL_RM} -f
 
-    ${=TOOL_RM} -f ${tempDir}/chunks-done
+    ${=TOOL_RM} -f ${tempDir}/chunks-done ${tempDir}/chunk-count
 
     # Try to remove our temporary dir.  Ignore failure since it may have
     # files from failed chunks in it.
