@@ -50,9 +50,6 @@ do
 
     ${=TOOL_CAT} ${file} >> ${opts[--output-file]}
     ${=TOOL_RM} -f ${file}
-
-    # XXX:  should the script return false if a file was passed in but could
-    # not be read?
 done
 
 # vim: ft=zsh
