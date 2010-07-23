@@ -94,7 +94,7 @@ OPTIONS
 
     --verbose
         Optional.  Output diagnostic status info to file descriptor 3.  If
-        fd 3 is not already redirected, it will be redirected to /dev/tty.
+        fd 3 is not already redirected, it will be redirected to stderr.
 
 OPERANDS
     command     The command to execute for each input chunk.  It receives
@@ -198,8 +198,8 @@ then
     export ll_pipe_verbose=1
 
     # Since verbose output is written to fd 3, make sure it's open.
-    # Otherwise, redirect it to /dev/tty.
-    eval ': >&3' 2>/dev/null || exec 3>/dev/tty
+    # If it's not, redirect it to stderr.
+    eval ': >&3' 2>/dev/null || exec 3>&2
 
 fi
 
