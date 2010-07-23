@@ -31,7 +31,7 @@ local file
 local chunkStatus
 while read -r file
 do
-    # If only collecting succesful chunks, skip this chunk if its exit
+    # If only collecting successful chunks, skip this chunk if its exit
     # status was not 0.  If there was any problem with the contents of the
     # .done file, default the status to 1, since that implies there was a
     # problem with that chunk.
