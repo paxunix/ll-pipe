@@ -151,7 +151,8 @@ function runCollector
 
 setopt nofunctionargzero
 
-. ${0:h}/../etc/ll-pipe-fns || return 1
+export ll_pipe_dir=${0:h}
+. ${ll_pipe_dir}/../etc/ll-pipe-fns || return 1
 
 enableDebug && setopt xtrace
 

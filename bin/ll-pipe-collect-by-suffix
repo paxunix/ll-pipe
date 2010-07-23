@@ -13,9 +13,9 @@
 # --output-file file
 #   Appends contents to file.
 
-enableDebug && setopt xtrace
+. ${ll_pipe_dir}/../etc/ll-pipe-fns || return 1
 
-. ${0:h}/../etc/ll-pipe-fns || return 1
+enableDebug && setopt xtrace
 
 
 local -A opts
