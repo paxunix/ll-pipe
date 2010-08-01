@@ -94,7 +94,7 @@ OPTIONS
 
     --verbose
         Optional.  Output diagnostic status info to file descriptor 3.  If
-        fd 3 is not already redirected, it will be redirected to /dev/tty.
+        fd 3 is not already redirected, it will be redirected to stderr.
 
 OPERANDS
     command     The command to execute for each input chunk.  It receives
@@ -138,12 +138,12 @@ function runCollector
 {
     local collectorMetafile=$(${=TOOL_MKTEMP} ${tempDir}/${$}.${0:t}.meta-collector.XXXXXXXXXX)
 
-    verbose "Starting collector ${@}"
+    verbose "Starting collector ${(z)@}"
 
-    timeCommand \
+    eval timeCommand \
         --kv "action:collector" \
         --output ${collectorMetafile} \
-        ${@}
+        ${(z)@}
 }   # runCollector
 
 
@@ -151,7 +151,8 @@ function runCollector
 
 setopt nofunctionargzero
 
-. ${0:h}/../etc/ll-pipe-fns || return 1
+export ll_pipe_dir=${0:h}
+. ${ll_pipe_dir}/../etc/ll-pipe-fns || return 1
 
 enableDebug && setopt xtrace
 
@@ -198,8 +199,8 @@ then
     export ll_pipe_verbose=1
 
     # Since verbose output is written to fd 3, make sure it's open.
-    # Otherwise, redirect it to /dev/tty.
-    eval ': >&3' 2>/dev/null || exec 3>/dev/tty
+    # If it's not, redirect it to stderr.
+    eval ': >&3' 2>/dev/null || exec 3>&2
 
 fi
 
@@ -239,7 +240,7 @@ fi
 collectors+=( +meta )
 
 # Empty the meta collector output file.
-: ${=TOOL_CAT} /dev/null > ${opts[--meta-outfile]}
+: > ${opts[--meta-outfile]}
 
 # Replace any predefined collector names with their commands.
 local i
@@ -253,7 +254,7 @@ done
 
 # Run the collector manager in the background.  The eval is used to run all
 # collectors simultaneously with multios.
-eval collectorManager ${collectors/(#b)(*)/> >(runCollector ${match})} &
+eval collectorManager ${collectors/(#b)(*)/> >(runCollector ${(q)match})} &
 
 # Ensure the collector manager and its collectors are killed on likely
 # signals.
@@ -314,12 +315,19 @@ else
         --no-run-if-empty \
         ${=TOOL_RM} -f
 
-    ${=TOOL_RM} -f ${tempDir}/chunks-done
+    ${=TOOL_RM} -f ${tempDir}/chunks-done ${tempDir}/chunk-count
 
     # Try to remove our temporary dir.  Ignore failure since it may have
     # files from failed chunks in it.
     builtin cd -
     ${=TOOL_RMDIR} --ignore-fail-on-non-empty ${tempDir}
+fi
+
+if (( ${xargsError} ))
+then
+    verbose "Failed."
+else
+    verbose "Succeeded."
 fi
 
 return ${xargsError}

@@ -86,8 +86,8 @@ function findTool
 
 
 findTool cat || return 1
-findTool ll-pipe-collect-by-suffix ${0:h} || return 1
-findTool ll-pipe-worker ${0:h} || return 1
+findTool ll-pipe-collect-by-suffix ${ll_pipe_dir} || return 1
+findTool ll-pipe-worker ${ll_pipe_dir} || return 1
 findTool mkdir || return 1
 findTool mktemp || return 1
 findTool mv || return 1
@@ -97,7 +97,7 @@ findTool rm || return 1
 findTool sed || return 1
 findTool sleep || return 1
 findTool time || return 1
-findTool ll-pipe-split ${0:h} || return 1
+findTool ll-pipe-split ${ll_pipe_dir} || return 1
 findTool xargs || return 1
 findTool zsh || return 1
 

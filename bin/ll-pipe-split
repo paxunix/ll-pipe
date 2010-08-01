@@ -62,8 +62,6 @@ sub closefile($$)
     {
         $fileHandle->close();
         print("$fileName\n");
-
-        verbose("++ Finished chunk $fileName\n");
     }
 }
 
@@ -118,3 +116,8 @@ while (<>)
 closefile($fileHandle, $fileName);
 
 verbose("++ Input split into " . ($fileCount - 1) . " chunks.\n");
+
+my $chunkCountFile = "$directory/chunk-count";
+open(COUNT, ">", $chunkCountFile) or
+    die("Failed to open '$chunkCountFile' for write: $!\n");
+print(COUNT ($fileCount - 1), "\n");
