@@ -1,2 +1,5 @@
 A zsh experiment in processing large amounts of input on stdin in parallel
 and preserving output order.
+
+Please do yourself a favour and consider using GNU parallel instead:
+http://www.gnu.org/software/parallel/
