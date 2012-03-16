@@ -5,6 +5,9 @@
 # each resulting filename.
 #
 # Options:
+# --compress
+#   Uses bzip2 to compress each chunk of data before writing it to the given
+#   file.
 # --suffix suf
 #   Appends suf to each filename read from stdin and if the resulting
 #   filename is readable, write its contents to the given file.
@@ -20,12 +23,14 @@ enableDebug && setopt xtrace
 
 local -A opts
 zparseopts -D -A opts -- \
+    "-compress" \
     "-successful-only" \
     "-suffix:" \
     "-output-file:" \
 
 findTool cat || return 1
 findTool rm || return 1
+findTool bzip2 || return 1
 
 local file
 local chunkStatus
@@ -48,7 +53,13 @@ do
 
     verbose "Collecting ${file}"
 
-    ${=TOOL_CAT} ${file} >> ${opts[--output-file]}
+    if (( ${+opts[--compress]} ))
+    then
+        ${=TOOL_BZIP2} -9c ${file} >> ${opts[--output-file]}
+    else
+        ${=TOOL_CAT} ${file} >> ${opts[--output-file]}
+    fi
+
     ${=TOOL_RM} -f ${file}
 done
 
