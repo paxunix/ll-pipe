@@ -40,6 +40,10 @@ ABOUT THE COLLECTORS
     it is interested in and must remove the file once finished.
 
 OPTIONS
+    --no-clean
+        Remove no files at all.  All temporary directories, input, output,
+        status, and error files are kept.  Useful for debugging.
+
     --clean-all
         Remove all files related to the input chunks, regardless of whether
         or not they were processed successfully.
@@ -165,6 +169,7 @@ collectors=( ${collectors:#--collector} )
 
 local -A opts
 zparseopts -D -A opts -- \
+    "-no-clean" \
     "-clean-all" \
     "-lines-per-chunk:" \
     "-max-attempts:" \
@@ -278,6 +283,7 @@ ${=TOOL_XARGS} \
     --no-run-if-empty \
     --replace='{}' \
     ${=TOOL_LL_PIPE_WORKER} \
+        ${(k)opts[--no-clean]} \
         --max-attempts ${opts[--max-attempts]} \
         --retry-delay ${opts[--retry-delay]} \
         ${(k)opts[--retry-failure-fatal]} \
@@ -304,25 +310,28 @@ then
     builtin cd -
     ${=TOOL_RM} -fr ${tempDir}
 else
-    # If not cleaning up everything, only remove chunk-related files for
-    # successful chunks.
-    local file
-    print -l -r -- ${tempDir}/[0-9]##.done(N) |
-    while read -r file
-    do
-        (( ${(f)"$(< ${file})":-1} == 0 )) && print -l -r -- ${file:r}{,.*}
-    done |
-    ${=TOOL_XARGS} \
-        --max-procs=${opts[--max-jobs]} \
-        --no-run-if-empty \
-        ${=TOOL_RM} -f
+    if (( ! ${+opts[--no-clean]} ))
+    then
+        # If not cleaning up everything, only remove chunk-related files for
+        # successful chunks.
+        local file
+        print -l -r -- ${tempDir}/[0-9]##.done(N) |
+        while read -r file
+        do
+            (( ${(f)"$(< ${file})":-1} == 0 )) && print -l -r -- ${file:r}{,.*}
+        done |
+        ${=TOOL_XARGS} \
+            --max-procs=${opts[--max-jobs]} \
+            --no-run-if-empty \
+            ${=TOOL_RM} -f
 
-    ${=TOOL_RM} -f ${tempDir}/chunks-done ${tempDir}/chunk-count
+        ${=TOOL_RM} -f ${tempDir}/chunks-done ${tempDir}/chunk-count
 
-    # Try to remove our temporary dir.  Ignore failure since it may have
-    # files from failed chunks in it.
-    builtin cd -
-    ${=TOOL_RMDIR} --ignore-fail-on-non-empty ${tempDir}
+        # Try to remove our temporary dir.  Ignore failure since it may have
+        # files from failed chunks in it.
+        builtin cd -
+        ${=TOOL_RMDIR} --ignore-fail-on-non-empty ${tempDir}
+    fi
 fi
 
 if (( ${xargsError} ))
