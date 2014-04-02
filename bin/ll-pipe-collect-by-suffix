@@ -1,6 +1,6 @@
 #!/usr/bin/env zsh
 
-# Read list of filenames on stdin, append the given suffix to each, the
+# Read list of filenames on stdin, append the given suffix to each, then
 # append the contents of each resulting file to the given filename, then remove
 # each resulting filename.
 #

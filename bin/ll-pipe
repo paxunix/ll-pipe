@@ -42,7 +42,7 @@ ABOUT THE COLLECTORS
 OPTIONS
     --clean-all
         Remove all files related to the input chunks, regardless of whether
-        or not they were processed succesfully.
+        or not they were processed successfully.
 
     --collector command+args
         Any number of --collector options can be given.  They are run in
