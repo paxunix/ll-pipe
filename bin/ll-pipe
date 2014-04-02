@@ -211,6 +211,8 @@ then
     return 1
 fi
 
+${=TOOL_CHMOD} 755 ${tempDir}
+
 # Predefined collectors
 local -A predefCollector2Command
 predefCollector2Command=(

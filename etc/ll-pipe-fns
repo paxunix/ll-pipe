@@ -86,6 +86,7 @@ function findTool
 
 
 findTool cat || return 1
+findTool chmod || return 1
 findTool ll-pipe-collect-by-suffix ${ll_pipe_dir} || return 1
 findTool ll-pipe-worker ${ll_pipe_dir} || return 1
 findTool mkdir || return 1
