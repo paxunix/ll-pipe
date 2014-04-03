@@ -222,16 +222,19 @@ ${=TOOL_CHMOD} 755 ${tempDir}
 local -A predefCollector2Command
 predefCollector2Command=(
     +stdout         "${=TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
+                        ${(k)opts[--no-clean]} \
                         --successful-only \
                         --suffix .out \
                         --output-file /dev/stdout"
 
     +stderr         "${=TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
+                        ${(k)opts[--no-clean]} \
                         --successful-only \
                         --suffix .err \
                         --output-file /dev/stderr"
 
     +meta           "${=TOOL_LL_PIPE_COLLECT_BY_SUFFIX} \
+                        ${(k)opts[--no-clean]} \
                         --successful-only \
                         --suffix .meta \
                         --output-file ${opts[--meta-outfile]}"
